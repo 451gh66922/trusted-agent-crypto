@@ -1,0 +1,14 @@
+{
+  "comment": "NIST SP 800-38D Appendix C — AES-128-GCM Test Case 2",
+  "aes_gcm": [
+    {
+      "id": "nist-sp800-38d-aes128-tc2",
+      "key": "00000000000000000000000000000000",
+      "nonce": "000000000000000000000000",
+      "aad": "",
+      "plaintext": "00000000000000000000000000000000",
+      "ciphertext": "0388dace60b6a392f328c2b971b2fe78",
+      "tag": "ab6e47d42cec13bdf53a67b21257bddf"
+    }
+  ]
+}
