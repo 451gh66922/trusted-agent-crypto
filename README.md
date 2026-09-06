@@ -2,6 +2,8 @@
 
 用安全芯片（SE）做 AI Agent 的可信授权根：**插上芯片才能授权，拔掉或越权就不能用**。
 
+**主语言：Python ≥ 3.11**（SoftSE / DPoP / 策略门 / pytest 全栈统一；真 SE 侧可用 APDU/PKCS#11 适配，不必换语言）。
+
 技术主线：SE 内保管不可导出私钥 → 按策略签发 **OAuth DPoP（RFC 9449）** 证明 → Agent 代用户访问云服务 / 调用高危工具时无法泄露密钥、无法越权滥用。
 
 ## 目标能力
@@ -13,42 +15,68 @@
 | 防滥用 | 策略外的 proof / 签名请求被芯片侧拒绝 |
 | 可插拔 | SoftSE → TPM → 真 SE 可切换，授权能力随卡走 |
 
-## 仓库结构（芯片与接口实施）
+## 仓库结构
 
 ```
 src/agent_auth/
 ├── backend/           # 统一 CryptoBackend：SoftSE / TPM / RealSE
-├── se/                # 安全芯片侧：SoftSE、APDU、PKCS#11、策略门
-├── policy/            # 白名单、次数窗、task 绑定等策略模型
-└── dpop/              # DPoP proof 构造（只依赖 backend 接口）
+├── se/                # SoftSE、APDU、PKCS#11、策略门
+├── policy/            # 白名单、次数窗、task 绑定
+└── dpop/              # DPoP proof（只依赖 backend 接口）
 examples/
-├── demo_ok.py         # 正常授权链路演示
-└── attacks/           # 泄露 / 重放 / 越权对照实验
-tests/                 # SoftSE、后端切换、策略门、DPoP 单测
+├── demo_ok.py         # 正常授权链路
+└── attacks/           # 泄露 / 重放 / 越权对照
+tests/                 # 单测（本地通过后再推）
 docs/                  # 公开技术说明（课题研究文档不上库）
 ```
 
-课题说明书、进度安排、参考文献等研究材料放在本地桌面目录，**不提交到本仓库**。
+课题说明书、进度安排、参考文献放在本地桌面目录，**不提交本仓库**。
 
 ## 环境
 
-要求：Python ≥ 3.11。
-
 ```powershell
-uv sync --extra dev
-# 或
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 pip install -e ".[dev]"
-```
-
-```powershell
 pytest
 ```
 
-## 协作
+或使用 `uv`：
 
-1. 不要直接 push 到 `main`，从最新 `main` 拉功能分支。
-2. 推送后开 Pull Request，Review 后再合并。
-3. 凭据文件（`tokens.json`、`credentials.json`、`.env`、密钥）严禁提交。
+```powershell
+uv sync --extra dev
+uv run pytest
+```
+
+## 三人协作（日常流程）
+
+约定：**本地 IDE 实现 → 本地 `pytest` 通过 → 推分支开 PR → Review 后合入 `main`**。不要直接往 `main` 推未测代码。
+
+1. 克隆并建分支  
+   ```powershell
+   git clone https://github.com/451gh66922/trusted-agent-crypto.git
+   cd trusted-agent-crypto
+   git checkout main
+   git pull
+   git checkout -b feat/你的功能名
+   ```
+2. 在 Cursor / VS Code 里改代码，本地跑通测试。  
+3. 提交并推送分支，开 Pull Request：  
+   ```powershell
+   git add -A
+   git commit -m "简述改了什么、为什么"
+   git push -u origin HEAD
+   gh pr create
+   ```
+4. 另一位组员 Review；CI / 本地测试通过后再合并。
+
+### 建议分工
+
+| 角色 | 目录 / 范围 |
+| --- | --- |
+| 芯片与接口 | `src/agent_auth/se/`、`backend/` |
+| 协议与客户端 | `src/agent_auth/dpop/`、Keycloak/Google 对接、`examples/demo_ok.py` |
+| 攻击与评测 | `examples/attacks/`、`tests/`、对比表与演示脚本 |
 
 ### 分支命名
 
@@ -58,3 +86,7 @@ pytest
 | 修复 | `fix/` | `fix/policy-whitelist` |
 | 文档 | `docs/` | `docs/architecture` |
 | 重构 | `refactor/` | `refactor/backend-api` |
+
+### 禁止提交
+
+`tokens.json`、`credentials.json`、`.env`、私钥、真实 refresh token。

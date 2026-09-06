@@ -48,7 +48,7 @@ docs/04-*.md
 **/03-两个月进度安排.md
 **/04-参考文献.md
 
-# 旧项目本地保留（tacrypto），不跟踪、不推送
+# 旧项目本地残留（不跟踪、不推送）
 /src/tacrypto/
 /docs/se-partition.md
 /docs/tls-partition.md
