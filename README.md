@@ -75,7 +75,7 @@ uv run pytest
 | 角色 | 目录 / 范围 |
 | --- | --- |
 | 芯片与接口 | `src/agent_auth/se/`、`backend/` |
-| 协议与客户端 | `src/agent_auth/dpop/`、Keycloak/Google 对接、`examples/demo_ok.py` |
+| 协议与客户端 | `src/agent_auth/dpop/`、Keycloak 对接、`examples/demo_ok.py` |
 | 攻击与评测 | `examples/attacks/`、`tests/`、对比表与演示脚本 |
 
 ### 分支命名

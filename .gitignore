@@ -54,7 +54,6 @@ docs/04-*.md
 /docs/tls-partition.md
 /docs/policy-channel-binding.md
 /examples/tls_*.py
-/examples/dpop_gmail/
 /tests/test_tls_*.py
 /tests/test_gm_*.py
 /tests/test_intl_*.py
