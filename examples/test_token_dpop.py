@@ -1,8 +1,20 @@
+import os
 import requests
 import time
 import uuid
 from jwcrypto import jwk, jwt
 import logging
+from dotenv import load_dotenv
+
+# 加载 .env 文件
+load_dotenv()
+
+# 从环境变量读取，两个脚本共享这个配置
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+
+# 防御性校验（防止忘记配置环境）
+if not CLIENT_SECRET:
+    raise EnvironmentError("❌ 错误: 未在 .env 文件中找到 CLIENT_SECRET")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("DPoPTest")
