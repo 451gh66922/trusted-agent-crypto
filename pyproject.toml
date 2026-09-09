@@ -16,9 +16,7 @@ dependencies = [
 dev = ["pytest>=8.0.0"]
 gm = [
     "gmssl>=3.2.2",
-]
-se = [
-    # Real SE / PKCS#11 bindings to be pinned when hardware path lands
+    # 国密/双栈（SM2/SM3）为 P2 可选；来不及则以文档级双栈说明呈现
 ]
 
 [tool.setuptools.packages.find]
