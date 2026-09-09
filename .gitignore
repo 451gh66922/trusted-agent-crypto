@@ -62,3 +62,7 @@ docs/04-*.md
 /tests/test_se_mandate.py
 /tests/vectors/
 /uv.lock
+
+# 审计日志运行时产物（脱敏样例可手动放入 docs/ 或提交包）
+/audit.jsonl
+/logs/

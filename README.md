@@ -4,7 +4,7 @@
 
 > **实现定位**：本仓库以 **SoftSE 软件安全元件** 为主路径实现可信授权；以 **SoftSE + 可插拔模拟（卸载后端 = 拔卡）** 形态呈现。
 
-**主语言：Python ≥ 3.11**（SoftSE / DPoP / 策略门 / 审计日志 / pytest 全栈统一；SE 侧可用 APDU/PKCS#11 适配）。
+**主语言：Python ≥ 3.11**（SoftSE / DPoP / 策略门 / 审计日志 / pytest 全栈统一）。
 
 技术主线：SE 内保管不可导出私钥 → **策略门在密钥使用点强制校验** → 按策略签发 **OAuth DPoP（RFC 9449）** 证明 → **每次签名/拒签落审计日志可回放** → Agent 代用户访问云服务 / 调用高危工具时无法泄露密钥、无法越权滥用、事后可追溯。
 
@@ -22,9 +22,10 @@
 
 ```
 src/agent_auth/
-├── backend/           # 统一 CryptoBackend 接口：SoftSE 主实现，TPM/RealSE 仅 stub + 插拔模拟
-├── se/                # SoftSE、APDU/PKCS#11 适配、策略门 PolicyGate、审计日志
+├── backend/           # 统一 CryptoBackend 接口：SoftSE 主实现，TPM 仅 stub + 插拔模拟
+├── se/                # SoftSE 内核、策略门 PolicyGate
 ├── policy/            # 白名单、次数窗、task_id / intent 绑定
+├── audit/             # 审计日志：JSONL 追加写、哈希链防篡改（可选）、按 task_id 回放
 └── dpop/              # DPoP proof（只依赖 backend 接口，签名经 SeDPoPKey 适配类委托后端）
 examples/
 ├── demo_ok.py         # 正常授权链路（Keycloak DPoP 主舞台）
