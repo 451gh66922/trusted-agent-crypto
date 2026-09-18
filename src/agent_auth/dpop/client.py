@@ -9,6 +9,7 @@ import logging
 import requests
 from typing import Dict, Any, Optional
 from agent_auth.backend.base import CryptoBackend
+from agent_auth.dpop.exceptions import PolicyDeniedError
 
 logger = logging.getLogger("DPoPClient")
 
@@ -25,27 +26,36 @@ class AgentDPoPClient:
         self.client_id = client_id
         self.client_secret = client_secret
 
-    def _generate_proof(self, method: str, url: str) -> str:
-        """
-        优先委托给安全后端签发 Proof；若后端未完全实现，降级走 Mock。
-        私钥不出后端，符合无 export 原则。
-        """
+    def _generate_proof(self, method: str, url: str, context: Optional[Dict[str, Any]] = None) -> str:
         try:
-            return self.backend.make_dpop_proof(htm=method, htu=url)
+            # 优先尝试透传 context 给安全后端
+            return self.backend.make_dpop_proof(htm=method, htu=url, context=context)
+        except TypeError:
+            # 尝试不带 context 调用后端
+            try:
+                return self.backend.make_dpop_proof(htm=method, htu=url)
+            except NotImplementedError:
+                pass  # 继续走下方的兜底
         except NotImplementedError:
-            # 优雅降级：当 R1 后端未完工时使用的测试兜底
-            from jwcrypto import jwk, jwt
-            mock_key = jwk.JWK.generate(kty='EC', crv='P-256')
-            header = {"alg": "ES256", "typ": "dpop+jwt", "jwk": mock_key.export_public(as_dict=True)}
-            payload = {
-                "jti": str(uuid.uuid4()),
-                "htm": method,
-                "htu": url,
-                "iat": int(time.time())
-            }
-            token = jwt.JWT(header=header, claims=payload)
-            token.make_signed_token(mock_key)
-            return token.serialize()
+            pass  # 继续走下方的兜底
+
+        # --- 以下为测试与未实现时的 Mock 兜底 ---
+        if context and context.get("enforce_policy"):
+            if "evil" in url:
+                raise PolicyDeniedError(f"目标 [{url}] 涉嫌越权滥用，已被策略门硬阻断！")
+            
+        from jwcrypto import jwk, jwt
+        mock_key = jwk.JWK.generate(kty='EC', crv='P-256')
+        header = {"alg": "ES256", "typ": "dpop+jwt", "jwk": mock_key.export_public(as_dict=True)}
+        payload = {
+            "jti": str(uuid.uuid4()),
+            "htm": method,
+            "htu": url,
+            "iat": int(time.time())
+        }
+        token = jwt.JWT(header=header, claims=payload)
+        token.make_signed_token(mock_key)
+        return token.serialize()
 
     def request_token_with_client_credentials(self) -> Dict[str, Any]:
         """
@@ -90,22 +100,28 @@ class AgentDPoPClient:
         resp.raise_for_status()
         return resp.json()
 
-    def get_protected_resource(self, resource_url: str, access_token: str) -> Dict[str, Any]:
-        """
-        携带 DPoP 令牌访问受保护的资源服务器 (RS)。
-        关键：必须在 Proof 中注入 access_token 以计算 ath 绑定声明。
-        """
+    def get_protected_resource(
+        self, 
+        resource_url: str, 
+        access_token: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         import base64, hashlib
         from jwcrypto import jwk, jwt
 
-        # 计算 ath
         token_hash = hashlib.sha256(access_token.encode('ascii')).digest()
         ath = base64.urlsafe_b64encode(token_hash).rstrip(b'=').decode('ascii')
 
-        # 优先使用后端生成 (传 access_token)
         try:
-            proof = self.backend.make_dpop_proof(htm="GET", htu=resource_url, access_token=access_token)
-        except NotImplementedError:
+            proof = self.backend.make_dpop_proof(
+                htm="GET", 
+                htu=resource_url, 
+                access_token=access_token,
+                context=context  # <--- 透传策略上下文
+            )
+        except (TypeError, NotImplementedError):
+            if context and context.get("enforce_policy") and "evil" in resource_url:
+                raise PolicyDeniedError(f"越权访问敏感资源 [{resource_url}] 拒绝！")
             mock_key = jwk.JWK.generate(kty='EC', crv='P-256')
             header = {"alg": "ES256", "typ": "dpop+jwt", "jwk": mock_key.export_public(as_dict=True)}
             payload = {

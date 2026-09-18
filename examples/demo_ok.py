@@ -77,8 +77,13 @@ def main() -> None:
             logger.info("🎉 步骤 2：成功刷新获取最新 DPoP Token！")
 
         # 6. 访问受保护的资源服务器 (RS)
-        logger.info(f"--- 步骤 3：携带 Token 与 Proof 请求受保护业务数据: {RS_URL} ---")
-        rs_data = client.get_protected_resource(RS_URL, access_token)
+        # 👉 注入 W4 策略上下文：绑定合法任务 task-order-001 并启用策略检查
+        legit_policy_context = {
+            "task_id": "task-order-001",
+            "enforce_policy": True
+        }
+        logger.info(f"--- 步骤 3：携带 Token、合法任务上下文 ({legit_policy_context['task_id']}) 请求受保护业务数据: {RS_URL} ---")
+        rs_data = client.get_protected_resource(RS_URL, access_token, context=legit_policy_context)
         
         logger.info("🏆 步骤 3 成功！资源服务器放行，业务响应:")
         logger.info(f">> {rs_data['message']}")
@@ -86,7 +91,7 @@ def main() -> None:
         logger.info("=== 恭喜！端到端全链路 (Client -> AS -> RS) 100% 验收通关！ ===")
 
     except Exception as e:
-        logger.error(f"❌ 流程中断: {e}")
+        logger.exception("❌ 流程中断详情:")  # <--- 使用 logger.exception 会自动打印完整堆栈！
 
 if __name__ == "__main__":
     main()

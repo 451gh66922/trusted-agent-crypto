@@ -35,9 +35,30 @@ class SoftwareBaselineBackend(CryptoBackend):
         import json
         return json.loads(self.raw_key.export_public())
 
-    def make_dpop_proof(self, *, htm: str, htu: str, access_token: Optional[str] = None, nonce: Optional[str] = None) -> str:
-        import time, uuid, json, hashlib, base64
+    def make_dpop_proof(
+        self, 
+        *, 
+        htm: str, 
+        htu: str, 
+        access_token: Optional[str] = None, 
+        nonce: Optional[str] = None,
+        context: Optional[dict[str, Any]] = None
+    ) -> str:
+        import time, uuid, hashlib, base64
         from jwcrypto import jwt
+        from agent_auth.dpop.exceptions import PolicyDeniedError
+
+        # 模拟 W4 策略门规则：
+        # 如果传入了 context 且开启了策略检查：校验目标是否在白名单内
+        if context and context.get("enforce_policy"):
+            allowed_recipients = ["http://localhost:8080", "http://127.0.0.1:8081", "http://127.0.0.1:9999"]
+            is_allowed = any(htu.startswith(allowed) for allowed in allowed_recipients)
+            if not is_allowed:
+                raise PolicyDeniedError(
+                    reason=f"目标 URL [{htu}] 不在受信白名单内，任务 ID: {context.get('task_id')}",
+                    reason_code="POLICY_DENIED_RECIPIENT"
+                )
+
         header = {"alg": "ES256", "typ": "dpop+jwt", "jwk": self.get_public_key()}
         payload = {
             "jti": str(uuid.uuid4()),
