@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from agent_auth.backend.soft import SoftSEBackend
 from agent_auth.dpop.client import AgentDPoPClient
 from agent_auth.dpop.resource_server import run_server
+from agent_auth.dpop.mock_idp import run_mock_idp
 
 load_dotenv()
 
@@ -27,7 +28,13 @@ def main() -> None:
     # 1. 后台自动拉起资源服务器 (RS)
     rs_thread = threading.Thread(target=run_server, args=(9999,), daemon=True)
     rs_thread.start()
-    time.sleep(0.5)
+
+    # 如果指定的是本地8081端口，自动在后台拉起保命 IdP！
+    if":8081" in TOKEN_URL:
+        idp_thread = threading.Thread(target=run_mock_idp, args=(8081,), daemon=True)
+        idp_thread.start()
+
+    time.sleep(1)
 
     # 2. 挂载安全后端与客户端
     backend = SoftSEBackend()
