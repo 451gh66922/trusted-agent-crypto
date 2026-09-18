@@ -1,13 +1,16 @@
 """
 终极全链路演示：SoftSE -> Keycloak (AS) -> 资源服务器 (RS)
-R2 W2 完整验收交付物。
+R2 W2~W3 核心交付物：支持三种安全后端形态切换 (soft_se / software / unplugged)。
 """
 import os
+import sys
 import time
 import logging
+import argparse
 import threading
 from dotenv import load_dotenv
 
+# 引用统一安全后端工厂与 DPoP 客户端组件
 from agent_auth.backend.factory import get_crypto_backend
 from agent_auth.dpop.client import AgentDPoPClient
 from agent_auth.dpop.resource_server import run_server
@@ -24,41 +27,53 @@ TOKEN_URL = os.getenv("TOKEN_URL", "http://localhost:8080/realms/crypto-contest/
 RS_URL = "http://127.0.0.1:9999/api/protected-resource"
 
 def main() -> None:
-    logger.info("=== [Demo OK] 启动 DPoP 端到端完整授权链路 ===")
+    # 1. 严格解析 CLI 命令行参数
+    parser = argparse.ArgumentParser(description="DPoP 客户端主链路演示")
+    parser.add_argument(
+        "--backend", 
+        choices=["soft_se", "software", "unplugged"], 
+        default=None,
+        help="指定安全后端: soft_se (默认), software (软件私钥), unplugged (拔卡模拟)"
+    )
+    args, _ = parser.parse_known_args()
 
-    # 1. 后台自动拉起资源服务器 (RS)
+    # 决策优先级：命令行参数 --backend > 环境变量 AUTH_BACKEND > 默认值 soft_se
+    backend_mode = args.backend or os.getenv("AUTH_BACKEND") or "soft_se"
+
+    logger.info("=== [Demo OK] 启动 DPoP 端到端完整授权链路 ===")
+    logger.info(f"当前生效的安全后端模式: [{backend_mode}]")
+
+    # 2. 后台按需拉起服务 (RS 与 Mock IdP)
     rs_thread = threading.Thread(target=run_server, args=(9999,), daemon=True)
     rs_thread.start()
 
-    # 如果指定的是本地8081端口，自动在后台拉起保命 IdP！
-    if":8081" in TOKEN_URL:
+    if ":8081" in TOKEN_URL:
         idp_thread = threading.Thread(target=run_mock_idp, args=(8081,), daemon=True)
         idp_thread.start()
 
-    time.sleep(1)
+    time.sleep(0.5)
 
-    # 2. 动态挂载后端 (支持通过环境变量 AUTH_BACKEND 切换) & 挂载客户端
-    backend_mode = os.getenv("AUTH_BACKEND", "soft_se")
-    logger.info(f"当前选用的安全后端模式: [{backend_mode}]")
+    # 3. 动态获取对应的安全后端
     backend = get_crypto_backend(backend_mode)
-
     client = AgentDPoPClient(backend, TOKEN_URL, CLIENT_ID, CLIENT_SECRET)
 
     try:
-        # 3. 换发 Token
+        # 4. 换发 Token
         token_data = client.request_token_with_client_credentials()
         access_token = token_data.get("access_token")
         refresh_token = token_data.get("refresh_token")
-        logger.info("🎉 步骤 1：成功向 Keycloak 获取初始 DPoP Token！")
+        logger.info("🎉 步骤 1：成功向授权服务器获取初始 DPoP Token！")
 
-        # 4. 刷新 Token
-        new_token_data = client.refresh_token(refresh_token)
-        final_token = new_token_data.get("access_token")
-        logger.info("🎉 步骤 2：成功刷新获取最新 DPoP Token！")
+        # 5. 演示刷新流
+        if refresh_token:
+            logger.info("--- 正在演示 DPoP 刷新流 (Refresh Flow) ---")
+            new_token_data = client.refresh_token(refresh_token)
+            access_token = new_token_data.get("access_token")
+            logger.info("🎉 步骤 2：成功刷新获取最新 DPoP Token！")
 
-        # 5. 访问受保护的资源服务器 (RS)
+        # 6. 访问受保护的资源服务器 (RS)
         logger.info(f"--- 步骤 3：携带 Token 与 Proof 请求受保护业务数据: {RS_URL} ---")
-        rs_data = client.get_protected_resource(RS_URL, final_token)
+        rs_data = client.get_protected_resource(RS_URL, access_token)
         
         logger.info("🏆 步骤 3 成功！资源服务器放行，业务响应:")
         logger.info(f">> {rs_data['message']}")
