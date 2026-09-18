@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("DemoOK")
 
 CLIENT_ID = os.getenv("CLIENT_ID", "agent-app")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET", "2untpDkJ0DAJeULrzPxiB01s1HsNdUjp")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 TOKEN_URL = os.getenv("TOKEN_URL", "http://localhost:8080/realms/crypto-contest/protocol/openid-connect/token")
 RS_URL = "http://127.0.0.1:9999/api/protected-resource"
 
@@ -39,6 +39,11 @@ def main() -> None:
 
     # 决策优先级：命令行参数 --backend > 环境变量 AUTH_BACKEND > 默认值 soft_se
     backend_mode = args.backend or os.getenv("AUTH_BACKEND") or "soft_se"
+
+    if not CLIENT_SECRET and ":8081" not in TOKEN_URL:
+        logger.error("❌ 启动失败: 未检测到 CLIENT_SECRET！")
+        logger.error("👉 请确保项目根目录存在 .env 文件，并配置了 CLIENT_SECRET=<你的客户端密钥>")
+        sys.exit(1)
 
     logger.info("=== [Demo OK] 启动 DPoP 端到端完整授权链路 ===")
     logger.info(f"当前生效的安全后端模式: [{backend_mode}]")
