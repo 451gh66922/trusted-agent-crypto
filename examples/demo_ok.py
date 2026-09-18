@@ -7,7 +7,8 @@ import time
 import logging
 import threading
 from dotenv import load_dotenv
-from agent_auth.backend.soft import SoftSEBackend
+
+from agent_auth.backend.factory import get_crypto_backend
 from agent_auth.dpop.client import AgentDPoPClient
 from agent_auth.dpop.resource_server import run_server
 from agent_auth.dpop.mock_idp import run_mock_idp
@@ -36,8 +37,11 @@ def main() -> None:
 
     time.sleep(1)
 
-    # 2. 挂载安全后端与客户端
-    backend = SoftSEBackend()
+    # 2. 动态挂载后端 (支持通过环境变量 AUTH_BACKEND 切换) & 挂载客户端
+    backend_mode = os.getenv("AUTH_BACKEND", "soft_se")
+    logger.info(f"当前选用的安全后端模式: [{backend_mode}]")
+    backend = get_crypto_backend(backend_mode)
+
     client = AgentDPoPClient(backend, TOKEN_URL, CLIENT_ID, CLIENT_SECRET)
 
     try:
