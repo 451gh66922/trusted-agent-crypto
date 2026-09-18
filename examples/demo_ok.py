@@ -92,6 +92,7 @@ def main() -> None:
 
     except Exception as e:
         logger.exception("❌ 流程中断详情:")  # <--- 使用 logger.exception 会自动打印完整堆栈！
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
