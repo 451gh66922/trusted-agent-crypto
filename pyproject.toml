@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agent-auth"
+version = "0.1.0"
+description = "SE-backed trusted authorization for AI Agents (DPoP + policy gate)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cryptography>=42.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+gm = [
+    "gmssl>=3.2.2",
+    # 国密/双栈（SM2/SM3）为 P2 可选；来不及则以文档级双栈说明呈现
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

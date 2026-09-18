@@ -1,7 +1,68 @@
-.env
-*.pyc
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
 venv/
+env/
+
+# Test / tooling caches
 .pytest_cache/
-*.json
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Secrets & credentials
+.env
+.env.*
+*.pem
 *.key
+tokens.json
+credentials.json
+*.p12
+*.pfx
+
+# OS
+Thumbs.db
+.DS_Store
+
+# 课题研究文档（仅本地/桌面，不上 GitHub）
+docs/01-*.md
+docs/02-*.md
+docs/03-*.md
+docs/04-*.md
+**/01-课题说明书.md
+**/02-起步与研究步骤.md
+**/03-两个月进度安排.md
+**/04-参考文献.md
+
+# 旧项目本地残留（不跟踪、不推送）
+/src/tacrypto/
+/docs/se-partition.md
+/docs/tls-partition.md
+/docs/policy-channel-binding.md
+/examples/tls_*.py
+/tests/test_tls_*.py
+/tests/test_gm_*.py
+/tests/test_intl_*.py
+/tests/test_apdu.py
+/tests/test_policy_mandate.py
+/tests/test_se_mandate.py
+/tests/vectors/
+/uv.lock
+
+# 审计日志运行时产物（脱敏样例可手动放入 docs/ 或提交包）
+/audit.jsonl
+/logs/
